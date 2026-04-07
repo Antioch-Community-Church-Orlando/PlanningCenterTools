@@ -3,7 +3,8 @@
 Run with:  python -m main
 """
 
-from pco.cli import pick_context
+from dotenv import load_dotenv
+
 from pco.client import create_client
 from services.blockouts import add_blockouts
 from services.volunteers import check_for_duplicates, check_average_volunteer_usage
@@ -22,11 +23,11 @@ Planning Center Tools
 
 
 def main():
+    load_dotenv()
     print(MENU)
     choice = input("Enter your choice: ").strip()
 
-    context = pick_context()
-    pco = create_client(context)
+    pco = create_client()
 
     actions = {
         "1": lambda: add_blockouts(pco),

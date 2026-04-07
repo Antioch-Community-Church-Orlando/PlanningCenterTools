@@ -23,12 +23,11 @@ Python CLI tools to automate [Planning Center](https://www.planningcenteronline.
    pip install .
    ```
 
-2. **Create an API context** — copy the example and fill in your credentials from
-   [developer.planning.center](https://developer.planning.center/):
-   ```bash
-   cp context/context.cxt.example context/myorg.cxt
-   # edit context/myorg.cxt with your application_id and secret
-   ```
+2. **Store API credentials in the system keyring** — on first run you will be prompted
+   automatically. Or run the tool and enter your credentials from
+   [api.planningcenteronline.com](https://api.planningcenteronline.com/personal_access_tokens) when asked.
+   Credentials are stored securely in your OS keychain (macOS Keychain,
+   Windows Credential Manager, or a Secret Service on Linux).
 
 3. **Prepare input files** (for blockouts):
    - `input/names.csv` — one row per person with `Full Name` and `Trip` columns
@@ -40,23 +39,23 @@ Python CLI tools to automate [Planning Center](https://www.planningcenteronline.
 uv run python main.py
 ```
 
-You'll be prompted to choose a context, then pick an action from the menu.
+You'll be prompted to enter your PCO API credentials on first run (stored securely in the system keyring). Subsequent runs will use the saved credentials automatically.
 
 ## Project Structure
 
 ```
 PlanningCenterTools/
 ├── main.py              # CLI entry point
+├── .env.example         # Template for non-sensitive config
 ├── pco/                 # Shared API client & CLI helpers
-│   ├── client.py        # pypco wrapper, pagination, service-type helpers
-│   └── cli.py           # Interactive context/input pickers
+│   ├── client.py        # pypco wrapper, keyring credential management
+│   └── cli.py           # Interactive input/service-type pickers
 ├── services/            # Planning Center Services tools
 │   ├── blockouts.py     # Bulk blockout date creation
 │   ├── volunteers.py    # Duplicate detection & usage reports
 │   └── templates.py     # Template export
 ├── people/              # Planning Center People tools
 │   └── extract.py       # Full people export (JSON + CSV)
-├── context/             # API credential files (.cxt)
 ├── input/               # Input CSVs and blockout JSON
 ├── output/              # Generated reports (gitignored)
 └── pyproject.toml

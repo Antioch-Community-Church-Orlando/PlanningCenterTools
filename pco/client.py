@@ -1,27 +1,41 @@
 """Thin wrapper around pypco for creating and working with the PCO API client."""
 
-import json
+import keyring
 import pypco
 
+_KEYRING_SERVICE = "planning-center-tools"
 
-def create_client(context: dict) -> pypco.PCO:
-    """Create an authenticated pypco client from a context dict.
 
-    Args:
-        context: Dict with 'application_id' and 'secret' keys from a .cxt file.
+def setup_credentials() -> None:
+    """Prompt the user for PCO API credentials and store them in the system keyring."""
+    print("PCO API credentials not found. Enter them now (from https://api.planningcenteronline.com/personal_access_tokens).")
+    app_id = input("  Application ID: ").strip()
+    secret = input("  Secret: ").strip()
+
+    if not app_id or not secret:
+        print("Both fields are required.")
+        return setup_credentials()
+
+    keyring.set_password(_KEYRING_SERVICE, "application_id", app_id)
+    keyring.set_password(_KEYRING_SERVICE, "secret", secret)
+    print("Credentials saved to keyring.")
+
+
+def create_client() -> pypco.PCO:
+    """Create an authenticated pypco client using credentials from the system keyring.
+
+    If credentials are not found, the user is prompted to enter and store them.
 
     Returns:
         An authenticated pypco.PCO instance.
-
-    Raises:
-        SystemExit: If the context is missing required credentials.
     """
-    app_id = context.get("application_id")
-    secret = context.get("secret")
+    app_id = keyring.get_password(_KEYRING_SERVICE, "application_id")
+    secret = keyring.get_password(_KEYRING_SERVICE, "secret")
 
     if not app_id or not secret:
-        print("Invalid context — missing application_id or secret.")
-        raise SystemExit(1)
+        setup_credentials()
+        app_id = keyring.get_password(_KEYRING_SERVICE, "application_id")
+        secret = keyring.get_password(_KEYRING_SERVICE, "secret")
 
     return pypco.PCO(app_id, secret)
 
@@ -96,6 +110,38 @@ def get_team_members(pco: pypco.PCO, service_type_id: str, plan_id: str) -> list
     """
     endpoint = f"/services/v2/service_types/{service_type_id}/plans/{plan_id}/team_members"
     return _iterate_to_list(pco, endpoint)
+
+
+def get_template_members(
+    pco: pypco.PCO, service_type_id: str, template_id: str
+) -> tuple[list[dict], dict[str, str]]:
+    """Retrieve all team members for a plan template (paginated).
+
+    Uses ``?include=team`` so that the response includes team resources,
+    allowing us to build a team-ID → team-name lookup (which also covers
+    archived teams that wouldn't appear in the normal teams listing).
+
+    Args:
+        pco: An authenticated pypco.PCO instance.
+        service_type_id: The service type ID.
+        template_id: The plan template ID.
+
+    Returns:
+        A tuple of (members, team_map) where *members* is a flat list of
+        team-member resource dicts and *team_map* maps team IDs to names.
+    """
+    endpoint = (
+        f"/services/v2/service_types/{service_type_id}"
+        f"/plan_templates/{template_id}/team_members?include=team"
+    )
+    members: list[dict] = []
+    team_map: dict[str, str] = {}
+    for page in pco.iterate(endpoint):
+        members.append(page["data"])
+        for inc in page.get("included", []):
+            if inc["type"] == "Team":
+                team_map[inc["id"]] = inc["attributes"]["name"]
+    return members, team_map
 
 
 def get_all_services_people(pco: pypco.PCO) -> list[dict]:
