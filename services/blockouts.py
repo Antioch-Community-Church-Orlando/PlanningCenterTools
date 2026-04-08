@@ -1,6 +1,9 @@
 """Add blockout dates in Planning Center Services for a list of people."""
 
 import logging
+import os
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pypco
 from dateutil import parser as dateutil_parser
@@ -14,18 +17,21 @@ logger = logging.getLogger(__name__)
 _INVALID_DATE_TOKENS = {"pending", "tbd", "n/a", "na", ""}
 
 
-def _parse_date(value: str) -> str | None:
-    """Parse a date string into ISO 8601 format for the PCO API.
+def _parse_date(value: str, tz: ZoneInfo) -> str | None:
+    """Parse a date string into ISO 8601 UTC format for the PCO API.
 
-    Handles common formats: MM/DD/YYYY, YYYY-MM-DD, M/D/YYYY, MM-DD-YYYY,
-    Month DD YYYY, etc.  Returns None for non-date values like "Pending".
+    Interprets the date as midnight in the given local timezone, then converts
+    to UTC. Handles common formats: MM/DD/YYYY, YYYY-MM-DD, M/D/YYYY, etc.
+    Returns None for non-date values like "Pending".
     """
     cleaned = value.strip()
     if cleaned.lower() in _INVALID_DATE_TOKENS:
         return None
     try:
-        dt = dateutil_parser.parse(cleaned, dayfirst=False)
-        return dt.strftime("%Y-%m-%dT00:00:00Z")
+        dt_naive = dateutil_parser.parse(cleaned, dayfirst=False)
+        dt_local = dt_naive.replace(tzinfo=tz)
+        dt_utc = dt_local.astimezone(timezone.utc)
+        return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     except (ValueError, OverflowError):
         return None
 
@@ -105,9 +111,28 @@ def add_blockouts(pco: pypco.PCO):
     """Interactive flow: pick an input CSV, then post blockout dates.
 
     Reads a CSV with columns: Last Name, First Name, Reason, Start Date, End Date.
+    Requires PCO_TIMEZONE to be set in .env (e.g. America/New_York).
     For each person, attempts to match them against Services people and creates
     the corresponding blockout (or previews in dry-run mode).
     """
+    tz_name = os.environ.get("PCO_TIMEZONE", "").strip()
+    if not tz_name:
+        print(
+            "✗ PCO_TIMEZONE is not set.\n"
+            "  Add it to your .env file — see .env.example for common timezone names.\n"
+            "  Example: PCO_TIMEZONE=America/New_York"
+        )
+        return
+
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        print(
+            f"✗ PCO_TIMEZONE={tz_name!r} is not a valid IANA timezone name.\n"
+            "  See .env.example for common examples (e.g. America/New_York, America/Chicago)."
+        )
+        return
+
     rows = pick_input()
     dry_run = _pick_mode()
     all_people = get_all_services_people(pco)
@@ -130,8 +155,8 @@ def add_blockouts(pco: pypco.PCO):
         if not full_name:
             continue
 
-        starts_at = _parse_date(raw_start)
-        ends_at = _parse_date(raw_end)
+        starts_at = _parse_date(raw_start, tz)
+        ends_at = _parse_date(raw_end, tz)
 
         if not starts_at or not ends_at:
             logger.warning("Skipping %s — invalid dates: Start=%r, End=%r", full_name, raw_start, raw_end)
