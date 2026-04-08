@@ -146,16 +146,16 @@ def add_blockouts(pco: pypco.PCO):
         for person in all_people:
             if _match_person(first_name, last_name, full_name, person):
                 matched = True
-                if dry_run:
+                if _has_existing_blockout(pco, person["id"], starts_at, ends_at):
+                    logger.warning("Duplicate blockout for %s (%s to %s) — skipping", full_name, starts_at, ends_at)
+                    print(f"  ⚠ Blockout already exists for {full_name} ({starts_at} to {ends_at}) — skipping")
+                    stats["skipped_duplicate"] += 1
+                elif dry_run:
                     print(f"  → Would create blockout: {starts_at} to {ends_at} — {reason}")
+                    stats["created"] += 1
                 else:
-                    if _has_existing_blockout(pco, person["id"], starts_at, ends_at):
-                        logger.warning("Duplicate blockout for %s (%s to %s) — skipping", full_name, starts_at, ends_at)
-                        print(f"  ⚠ Blockout already exists for {full_name} ({starts_at} to {ends_at}) — skipping")
-                        stats["skipped_duplicate"] += 1
-                    else:
-                        _post_blockout(pco, person["id"], starts_at, ends_at, reason or "Blockout")
-                        stats["created"] += 1
+                    _post_blockout(pco, person["id"], starts_at, ends_at, reason or "Blockout")
+                    stats["created"] += 1
                 break
 
         if not matched:
@@ -167,9 +167,9 @@ def add_blockouts(pco: pypco.PCO):
     print("\n── Summary ──")
     print(f"  Processed:          {stats['processed']}")
     if dry_run:
-        print(f"  Would create:       {stats['processed'] - stats['skipped_not_found']}")
+        print(f"  Would create:       {stats['created']}")
     else:
         print(f"  Created:            {stats['created']}")
-        print(f"  Skipped (duplicate):{stats['skipped_duplicate']}")
+    print(f"  Skipped (duplicate):{stats['skipped_duplicate']}")
     print(f"  Skipped (bad dates):{stats['skipped_date']}")
     print(f"  Skipped (not found):{stats['skipped_not_found']}")
