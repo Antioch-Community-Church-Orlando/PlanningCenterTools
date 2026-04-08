@@ -1,7 +1,6 @@
 """Interactive CLI helpers for selecting input files and service types."""
 
 import csv
-import json
 from pathlib import Path
 
 # Resolve paths relative to the project root (parent of pco/)
@@ -25,7 +24,7 @@ def grab_all_inputs() -> dict:
     if not files:
         print(
             "No input files found. Create a {name}.csv file in the input/ directory.\n"
-            "See input/ExampleNames.csv.example for the expected format."
+            "See input/ExampleBlockouts.csv.example for the expected format."
         )
         raise SystemExit(1)
 
@@ -57,13 +56,3 @@ def pick_input(choice: int | None = None) -> list[dict]:
         print("Invalid choice. Please enter a number from the list.")
         return pick_input()
 
-
-def get_blockout_info() -> dict:
-    """Load blockout configuration from input/blockouts.json.
-
-    Returns:
-        A dict mapping trip names to blockout date ranges.
-    """
-    path = _INPUT_DIR / "blockouts.json"
-    with open(path) as f:
-        return json.load(f)

@@ -6,7 +6,7 @@ Python CLI tools to automate [Planning Center](https://www.planningcenteronline.
 
 | Tool | Description |
 |---|---|
-| **Add blockout dates** | Bulk-add volunteer blockouts from a CSV + JSON config |
+| **Add blockout dates** | Bulk-add volunteer blockouts from a CSV (with dry-run preview) |
 | **Duplicate volunteer check** | Scan upcoming plans for people scheduled more than once |
 | **Volunteer usage report** | Count how often each volunteer served in a date range |
 | **Export plan templates** | Export templates and their team members to JSON/CSV |
@@ -30,8 +30,10 @@ Python CLI tools to automate [Planning Center](https://www.planningcenteronline.
    Windows Credential Manager, or a Secret Service on Linux).
 
 3. **Prepare input files** (for blockouts):
-   - `input/names.csv` — one row per person with `Full Name` and `Trip` columns
-   - `input/blockouts.json` — maps trip names to `starts_at`, `ends_at`, and `reason`
+   - `input/{name}.csv` — one row per person with `Last Name`, `First Name`, `Reason`, `Start Date`, `End Date` columns.
+   - See `input/ExampleBlockouts.csv.example` for the expected format.
+   - Dates can be in most common formats (MM/DD/YYYY, YYYY-MM-DD, etc.).
+   - Rows with non-date values like "Pending" or "TBD" are skipped with a warning.
 
 ## Usage
 

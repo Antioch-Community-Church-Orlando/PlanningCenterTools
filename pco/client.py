@@ -151,3 +151,16 @@ def get_all_services_people(pco: pypco.PCO) -> list[dict]:
         A flat list of person resource dicts.
     """
     return _iterate_to_list(pco, "/services/v2/people")
+
+
+def get_person_blockouts(pco: pypco.PCO, person_id: str) -> list[dict]:
+    """Retrieve all existing blockout dates for a person.
+
+    Args:
+        pco: An authenticated pypco.PCO instance.
+        person_id: The Services person ID.
+
+    Returns:
+        A flat list of blockout resource dicts.
+    """
+    return _iterate_to_list(pco, f"/services/v2/people/{person_id}/blockouts")
