@@ -71,13 +71,13 @@ def _prompt_close_match(original_first: str, original_last: str, candidates: lis
     print("  Close matches found:")
     for i, (f, l) in enumerate(candidates, 1):
         print(f"    {i}. {f} {l}")
-    print("  Or enter a custom name / 'remove' to delete this row / 'skip' to keep as-is")
+    print("  Or enter a custom name / 'remove' to delete this row / 'skip' or 's' to keep as-is")
 
     while True:
         choice = input("  Your choice: ").strip()
         if choice.lower() == "remove":
             return None
-        if choice.lower() == "skip":
+        if choice.lower() == "skip" or choice.lower() == "s" :
             return (original_first, original_last)
         if choice.isdigit():
             idx = int(choice) - 1
@@ -94,13 +94,13 @@ def _prompt_close_match(original_first: str, original_last: str, candidates: lis
 def _prompt_no_match(original_first: str, original_last: str) -> tuple[str, str] | None:
     """Prompt user when no fuzzy match is found. Returns corrected (first, last) or None to remove."""
     print(f'\n  "{original_first} {original_last}" was not found in people.csv and has no close matches.')
-    print("  Enter the correct name, 'remove' to delete this row, or 'skip' to keep as-is:")
+    print("  Enter the correct name, 'remove' to delete this row, or 'skip' or 's' to keep as-is:")
 
     while True:
         choice = input("  Your choice: ").strip()
         if choice.lower() == "remove":
             return None
-        if choice.lower() == "skip":
+        if choice.lower() == "skip" or choice.lower() == "s":
             return (original_first, original_last)
         parts = choice.split(None, 1)
         if len(parts) == 2:
