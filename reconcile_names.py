@@ -1,11 +1,11 @@
-"""Reconcile names in SummerMissionsDates2026.csv against the canonical spellings in people.csv.
+"""Reconcile names in a chosen input CSV against the canonical spellings in output/people.csv.
 
-For each name in SummerMissions:
+For each name in the input file:
   - Exact match (case-insensitive): no change needed.
   - Close match found: prompt to confirm the spelling correction.
   - No match: prompt to enter the correct name or remove the row.
 
-Overwrites input/SummerMissionsDates2026.csv with confirmed corrections.
+Overwrites the chosen input CSV with confirmed corrections.
 """
 
 import csv
@@ -13,19 +13,44 @@ import difflib
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent
-_SUMMER_CSV = _ROOT / "input" / "SummerMissionsDates2026.csv"
+_INPUT_DIR = _ROOT / "input"
 _PEOPLE_CSV = _ROOT / "output" / "people.csv"
 
 
+def _pick_input_file() -> tuple[Path, list[dict]]:
+    """Prompt the user to select a CSV from the input/ directory.
+
+    Returns:
+        A tuple of (path, rows) for the selected file.
+    """
+    csv_files = sorted(_INPUT_DIR.glob("*.csv"))
+    if not csv_files:
+        print("No CSV files found in input/. Add a file and try again.")
+        raise SystemExit(1)
+
+    print("Choose an input file to reconcile:")
+    for i, path in enumerate(csv_files, 1):
+        print(f"  {i}. {path.name}")
+
+    choice = input("Enter the number of your choice: ").strip()
+    try:
+        idx = int(choice) - 1
+        if not (0 <= idx < len(csv_files)):
+            raise ValueError
+    except ValueError:
+        print("Invalid choice. Please enter a number from the list.")
+        return _pick_input_file()
+
+    path = csv_files[idx]
+    with open(path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    return path, rows
+
+
 def _load_people(path: Path) -> list[tuple[str, str]]:
-    """Return list of (first_name, last_name) from people.csv (lowercased)."""
+    """Return list of (first_name, last_name) from people.csv."""
     with open(path, newline="", encoding="utf-8") as f:
         return [(row["first_name"].strip(), row["last_name"].strip()) for row in csv.DictReader(f)]
-
-
-def _load_summer(path: Path) -> list[dict]:
-    with open(path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
 
 
 def _canonical_key(first: str, last: str) -> str:
@@ -84,8 +109,15 @@ def _prompt_no_match(original_first: str, original_last: str) -> tuple[str, str]
 
 
 def reconcile():
+    if not _PEOPLE_CSV.exists():
+        print(
+            "✗ output/people.csv not found.\n"
+            "  Run option 5 ('Extract all people') from the main menu first to generate it."
+        )
+        raise SystemExit(1)
+
+    input_path, rows = _pick_input_file()
     people = _load_people(_PEOPLE_CSV)
-    rows = _load_summer(_SUMMER_CSV)
     fieldnames = list(rows[0].keys()) if rows else []
 
     people_exact: set[str] = {_canonical_key(f, l) for f, l in people}
@@ -134,12 +166,12 @@ def reconcile():
         updated_rows.append(row)
 
     # Write back
-    with open(_SUMMER_CSV, "w", newline="", encoding="utf-8") as f:
+    with open(input_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(updated_rows)
 
-    print(f"\n✓ Done. {_SUMMER_CSV} updated.")
+    print(f"\n✓ Done. {input_path} updated.")
     if changes:
         print(f"  {len(changes)} change(s) made:")
         for c in changes:
