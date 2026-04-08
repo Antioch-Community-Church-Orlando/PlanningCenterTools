@@ -123,8 +123,8 @@ def add_blockouts(pco: pypco.PCO):
         first_name = row.get("First Name", "").strip()
         last_name = row.get("Last Name", "").strip()
         reason = row.get("Reason", "").strip()
-        raw_start = row.get("Start Date", "").strip()
-        raw_end = row.get("End Date", "").strip()
+        raw_start = (row.get("Start Date") or "").strip()
+        raw_end = (row.get("End Date") or "").strip()
         full_name = f"{first_name} {last_name}".strip()
 
         if not full_name:
