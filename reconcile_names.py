@@ -69,8 +69,8 @@ def _prompt_close_match(original_first: str, original_last: str, candidates: lis
     """Prompt user to accept a close match or enter a custom name. Returns corrected (first, last) or None to remove."""
     print(f'\n  No exact match for "{original_first} {original_last}"')
     print("  Close matches found:")
-    for i, (f, l) in enumerate(candidates, 1):
-        print(f"    {i}. {f} {l}")
+    for i, (f, last) in enumerate(candidates, 1):
+        print(f"    {i}. {f} {last}")
     print("  Or enter a custom name / 'remove' to delete this row / 'skip' or 's' to keep as-is")
 
     while True:
@@ -120,7 +120,7 @@ def reconcile():
     people = _load_people(_PEOPLE_CSV)
     fieldnames = list(rows[0].keys()) if rows else []
 
-    people_exact: set[str] = {_canonical_key(f, l) for f, l in people}
+    people_exact: set[str] = {_canonical_key(f, last) for f, last in people}
 
     updated_rows: list[dict] = []
     changes: list[str] = []

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pypco
 
-from pco.client import pick_service_type, _iterate_to_list, get_template_members
+from pco.client import _iterate_to_list, get_template_members, pick_service_type
 
 _OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
 

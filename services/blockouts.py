@@ -2,14 +2,15 @@
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pypco
 from dateutil import parser as dateutil_parser
 
 from pco.cli import pick_input
-from pco.client import get_all_services_people, get_person_blockouts
+from pco.client import get_all_services_people, get_person_blockouts, post_blockout
+from pco.names import match_person as _match_person
 
 logger = logging.getLogger(__name__)
 
@@ -30,33 +31,11 @@ def _parse_date(value: str, tz: ZoneInfo) -> str | None:
     try:
         dt_naive = dateutil_parser.parse(cleaned, dayfirst=False)
         dt_local = dt_naive.replace(tzinfo=tz)
-        dt_utc = dt_local.astimezone(timezone.utc)
+        dt_utc = dt_local.astimezone(UTC)
         return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     except (ValueError, OverflowError):
         return None
 
-
-def _match_person(name_first: str, name_last: str, full_name: str, services_person: dict) -> bool:
-    """Check whether a services person matches the given name fields."""
-    attrs = services_person["attributes"]
-    svc_full = attrs["full_name"].lower()
-    svc_first = attrs.get("first_name", "").lower()
-    svc_last = attrs.get("last_name", "").lower()
-
-    first = name_first.lower()
-    last = name_last.lower()
-    full = full_name.lower()
-
-    if full == svc_full:
-        return True
-    if first == svc_first and last == svc_last:
-        return True
-    # Handle nicknames / middle-name mismatches by comparing first & last tokens
-    svc_tokens = svc_full.split()
-    if len(svc_tokens) >= 2 and first == svc_tokens[0] and last == svc_tokens[-1]:
-        return True
-
-    return False
 
 
 def _has_existing_blockout(pco: pypco.PCO, person_id: str, starts_at: str, ends_at: str) -> bool:
@@ -82,7 +61,7 @@ def _post_blockout(pco: pypco.PCO, person_id: str, starts_at: str, ends_at: str,
         },
     )
     try:
-        result = pco.post(f"/services/v2/people/{person_id}/blockouts", payload=payload)
+        result = post_blockout(pco, person_id, payload)
         desc = result["data"]["attributes"]["description"]
         print(f"  ✓ Blockout {result['data']['id']} created for {person_id} — {desc}")
     except Exception as e:

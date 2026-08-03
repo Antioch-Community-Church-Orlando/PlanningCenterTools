@@ -1,0 +1,22 @@
+[org]
+timezone = "America/New_York"
+# List of service type IDs to include in cross-cutting reports (leave empty = all)
+service_type_ids = []
+
+[thresholds]
+overuse_consecutive_weeks = 4
+burnout_serves_per_month = 5.0
+inactive_threshold_days = 120
+new_volunteer_days = 60
+schedule_horizon_weeks = 8
+decline_rate_threshold = 0.50
+pending_rate_threshold = 0.50
+decline_lookback_days = 180
+repeated_decline_count = 3
+
+[burnout_weights]
+# Must sum to 1.0
+serves_per_month_weight = 0.40
+consecutive_weeks_weight = 0.30
+decline_rate_weight = 0.20
+multi_team_same_day_weight = 0.10
